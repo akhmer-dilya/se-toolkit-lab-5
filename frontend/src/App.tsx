@@ -1,4 +1,5 @@
-import { useState, useEffect, useReducer, FormEvent } from 'react'
+import { useState, useReducer, FormEvent, useEffect } from 'react'
+import Dashboard from './Dashboard'
 import './App.css'
 
 const STORAGE_KEY = 'api_key'
@@ -32,15 +33,18 @@ function fetchReducer(_state: FetchState, action: FetchAction): FetchState {
   }
 }
 
+type Page = 'items' | 'dashboard'
+
 function App() {
   const [token, setToken] = useState(
     () => localStorage.getItem(STORAGE_KEY) ?? '',
   )
   const [draft, setDraft] = useState('')
   const [fetchState, dispatch] = useReducer(fetchReducer, { status: 'idle' })
+  const [currentPage, setCurrentPage] = useState<Page>('items')
 
   useEffect(() => {
-    if (!token) return
+    if (!token || currentPage !== 'items') return
 
     dispatch({ type: 'fetch_start' })
 
@@ -55,7 +59,7 @@ function App() {
       .catch((err: Error) =>
         dispatch({ type: 'fetch_error', message: err.message }),
       )
-  }, [token])
+  }, [token, currentPage])
 
   function handleConnect(e: FormEvent) {
     e.preventDefault()
@@ -69,6 +73,10 @@ function App() {
     localStorage.removeItem(STORAGE_KEY)
     setToken('')
     setDraft('')
+  }
+
+  function handleNavigate(page: Page) {
+    setCurrentPage(page)
   }
 
   if (!token) {
@@ -87,8 +95,45 @@ function App() {
     )
   }
 
+  if (currentPage === 'dashboard') {
+    return (
+      <div>
+        <nav className="app-nav">
+          <button
+            className={(currentPage as Page) === 'items' ? 'active' : ''}
+            onClick={() => handleNavigate('items')}
+          >
+            Items
+          </button>
+          <button
+            className={(currentPage as Page) === 'dashboard' ? 'active' : ''}
+            onClick={() => handleNavigate('dashboard')}
+          >
+            Dashboard
+          </button>
+        </nav>
+        <Dashboard />
+      </div>
+    )
+  }
+
   return (
     <div>
+      <nav className="app-nav">
+        <button
+          className={(currentPage as Page) === 'items' ? 'active' : ''}
+          onClick={() => handleNavigate('items')}
+        >
+          Items
+        </button>
+        <button
+          className={(currentPage as Page) === 'dashboard' ? 'active' : ''}
+          onClick={() => handleNavigate('dashboard')}
+        >
+          Dashboard
+        </button>
+      </nav>
+
       <header className="app-header">
         <h1>Items</h1>
         <button className="btn-disconnect" onClick={handleDisconnect}>
@@ -104,7 +149,7 @@ function App() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>ItemType</th>
+              <th>Type</th>
               <th>Title</th>
               <th>Created at</th>
             </tr>
